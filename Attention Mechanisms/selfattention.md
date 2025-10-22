@@ -1,6 +1,6 @@
-# Understanding Transformers: From Embeddings to Attention
+# Understanding Self-Attention
 
-A comprehensive guide to how transformer models predict text, from token embeddings to self-attention mechanisms.
+A comprehensive guide to how self-attention mechanisms work.
 
 ---
 
