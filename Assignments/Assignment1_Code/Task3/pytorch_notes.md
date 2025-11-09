@@ -56,3 +56,19 @@ b: bias vector [output_dim]
 y: output [batch, output_dim]
 
 The transpose (^T) is important!
+
+10.
+self.weight = nn.Parameter(...)
+PyTorch's magic __setattr__() method detects:
+
+"Oh, this is an nn.Parameter"
+"I need to register this for optimization"
+"Add it to my internal list of parameters"
+
+11.
+So now we have 3 types of things in nn.Module:
+
+Parameter - learnable, gets gradients, optimizer updates
+Buffer - not learnable, no gradients, but still saved in model
+Regular attribute - doesn't get saved, not part of model
+
