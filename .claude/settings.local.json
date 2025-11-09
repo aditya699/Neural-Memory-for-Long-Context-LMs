@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python:*)",
+      "Bash(temp_cell.txt)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
