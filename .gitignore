@@ -3,6 +3,8 @@ __pycache__/
 *.py[codz]
 *$py.class
 
+#model
+mha_model_best.pt
 # C extensions
 *.so
 
