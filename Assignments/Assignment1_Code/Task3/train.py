@@ -438,7 +438,7 @@ if __name__ == "__main__":
     
     # Load data
     print("\nLoading dataset...")
-    dataset = load_dataset('wikitext', 'wikitext-2-raw-v1')
+    dataset = load_dataset('wikitext', 'wikitext-103-raw-v1')
     tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
     tokenizer.pad_token = tokenizer.eos_token
     
@@ -447,8 +447,8 @@ if __name__ == "__main__":
     train_dataset = WikiTextDataset(dataset['train'], tokenizer, max_length=512)
     val_dataset = WikiTextDataset(dataset['validation'], tokenizer, max_length=512)
     
-    train_loader = DataLoader(train_dataset, batch_size=8, shuffle=True, num_workers=0)
-    val_loader = DataLoader(val_dataset, batch_size=8, shuffle=False, num_workers=0)
+    train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True, num_workers=0)
+    val_loader = DataLoader(val_dataset, batch_size=32, shuffle=False, num_workers=0)
     
     print(f"Train batches: {len(train_loader)}")
     print(f"Val batches: {len(val_loader)}")
@@ -479,7 +479,7 @@ if __name__ == "__main__":
     print("=" * 70)
 
     metrics_history = train_model_properly(
-        model, train_loader, val_loader, criterion, optimizer, device, num_epochs=100
+        model, train_loader, val_loader, criterion, optimizer, device, num_epochs=2
     )
 
     # Plot metrics
