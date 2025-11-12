@@ -116,3 +116,112 @@ Your ratio: 118.5:1
 Chinchilla optimal: 20:1
 Status: 6x overtrained (good for generation quality!)
 
+## Results
+Device: cuda
+GPU Memory: 0.03 GB
+
+Loading dataset...
+
+Creating datasets...
+Tokenizing dataset...
+Token indices sequence length is longer than the specified maximum sequence length for this model (1063 > 1024). Running this sequence through the model will result in indexing errors
+Total tokens: 115,716,078
+Tokenizing dataset...
+Total tokens: 242,643
+Train batches: 7063
+Val batches: 15
+
+Creating model...
+Parameters: 869,153
+GPU Memory: 0.03 GB
+
+======================================================================
+STARTING TRAINING
+======================================================================
+Epoch 1/10: 100%|██████████| 7063/7063 [15:18<00:00,  7.69it/s, loss=8.2508] 
+
+Epoch 1:
+  Train Loss: 8.2508
+  Val Loss: 7.2842
+  Val Perplexity: 1457.12
+  Best model so far! Saved to 'mha_model_best.pt'
+
+Epoch 2/10: 100%|██████████| 7063/7063 [15:18<00:00,  7.69it/s, loss=7.1734]
+
+Epoch 2:
+  Train Loss: 7.1734
+  Val Loss: 6.9867
+  Val Perplexity: 1082.15
+  Best model so far! Saved to 'mha_model_best.pt'
+
+Epoch 3/10: 100%|██████████| 7063/7063 [15:18<00:00,  7.69it/s, loss=6.9394]
+
+Epoch 3:
+  Train Loss: 6.9394
+  Val Loss: 6.7338
+  Val Perplexity: 840.37
+  Best model so far! Saved to 'mha_model_best.pt'
+
+Epoch 4/10: 100%|██████████| 7063/7063 [15:18<00:00,  7.69it/s, loss=6.6895]
+
+Epoch 4:
+  Train Loss: 6.6895
+  Val Loss: 6.4804
+  Val Perplexity: 652.23
+  Best model so far! Saved to 'mha_model_best.pt'
+
+Epoch 5/10: 100%|██████████| 7063/7063 [15:19<00:00,  7.68it/s, loss=6.4793]
+
+Epoch 5:
+  Train Loss: 6.4793
+  Val Loss: 6.3027
+  Val Perplexity: 546.04
+  Best model so far! Saved to 'mha_model_best.pt'
+
+Epoch 6/10: 100%|██████████| 7063/7063 [15:19<00:00,  7.68it/s, loss=6.3284]
+
+Epoch 6:
+  Train Loss: 6.3284
+  Val Loss: 6.1547
+  Val Perplexity: 470.93
+  Best model so far! Saved to 'mha_model_best.pt'
+
+Epoch 7/10: 100%|██████████| 7063/7063 [15:19<00:00,  7.68it/s, loss=6.2119]
+
+Epoch 7:
+  Train Loss: 6.2119
+  Val Loss: 6.0556
+  Val Perplexity: 426.51
+  Best model so far! Saved to 'mha_model_best.pt'
+
+Epoch 8/10: 100%|██████████| 7063/7063 [15:19<00:00,  7.68it/s, loss=6.1308]
+
+Epoch 8:
+  Train Loss: 6.1308
+  Val Loss: 5.9870
+  Val Perplexity: 398.24
+  Best model so far! Saved to 'mha_model_best.pt'
+
+Epoch 9/10: 100%|██████████| 7063/7063 [15:19<00:00,  7.68it/s, loss=6.0689]
+
+Epoch 9:
+  Train Loss: 6.0689
+  Val Loss: 5.9348
+  Val Perplexity: 377.98
+  Best model so far! Saved to 'mha_model_best.pt'
+
+Epoch 10/10: 100%|██████████| 7063/7063 [15:19<00:00,  7.68it/s, loss=6.0220]
+
+Epoch 10:
+  Train Loss: 6.0220
+  Val Loss: 5.8991
+  Val Perplexity: 364.71
+  Best model so far! Saved to 'mha_model_best.pt'
+
+======================================================================
+Training Complete!
+Best Epoch: 10
+Best Val Loss: 5.8991
+Best Val Perplexity: 364.71
+======================================================================
+
