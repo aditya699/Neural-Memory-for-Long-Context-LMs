@@ -458,11 +458,11 @@ if __name__ == "__main__":
     model = LanguageModel(
         vocab_size=50257,
         max_seq_len=512,
-        d_model=16,
-        num_heads=2,
-        d_ff=64,
-        num_layers=2,
-        dropout=0.3
+        d_model=128,
+        num_heads=8,
+        d_ff=512,
+        num_layers=4,
+        dropout=0.1
     ).to(device)
     
     num_params = sum(p.numel() for p in model.parameters())
@@ -470,7 +470,7 @@ if __name__ == "__main__":
     print(f"GPU Memory: {torch.cuda.memory_allocated()/1e9:.2f} GB")
     
     # Optimizer and loss
-    optimizer = optim.AdamW(model.parameters(), lr=3e-4, weight_decay=0.1)
+    optimizer = optim.AdamW(model.parameters(), lr=6e-4, weight_decay=0.1)
     criterion = nn.CrossEntropyLoss()
     
     # Train
@@ -479,7 +479,7 @@ if __name__ == "__main__":
     print("=" * 70)
 
     metrics_history = train_model_properly(
-        model, train_loader, val_loader, criterion, optimizer, device, num_epochs=2
+        model, train_loader, val_loader, criterion, optimizer, device, num_epochs=20, patience=5
     )
 
     # Plot metrics

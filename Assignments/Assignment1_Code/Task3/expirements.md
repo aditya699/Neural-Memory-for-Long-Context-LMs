@@ -225,3 +225,64 @@ Best Val Loss: 5.8991
 Best Val Perplexity: 364.71
 ======================================================================
 
+
+# Expirement-3 12/11/2025 
+
+## What we're doing
+Testing capacity hypothesis: Experiment 2 showed data is sufficient (116M tokens) but model under-parameterized. Scaling model to minimum viable size for coherent language generation while keeping dataset constant.
+
+## Model Configuration
+```python
+model = LanguageModel(
+    vocab_size=50257,
+    max_seq_len=512,
+    d_model=128,
+    num_heads=8,
+    d_ff=512,
+    num_layers=4,
+    dropout=0.1
+)
+```
+**Parameters:** ~10,000,000
+
+## Dataset
+- WikiText-103 (raw-v1)
+- Train tokens: 116,000,000
+- Val tokens: 242,643
+
+## Training Setup
+- Loss: Cross Entropy
+- Optimizer: AdamW (lr=6e-4, weight_decay=0.1)
+- Gradient Clipping: max_norm=1.0
+- Batch size: 32
+- Epochs: 20
+
+## Why This Configuration?
+Experiment 2 had sufficient data (118.5:1 ratio vs 20:1 optimal) but failed to generate coherent text. Root cause: severe capacity bottleneck.
+- d_model=16 → tokens compressed into insufficient dimensions
+- head_dim=8 → attention too simplistic
+- 2 layers → can't learn hierarchical structure
+
+This model (10M params) crosses minimum thresholds for basic language understanding:
+- d_model=128: minimum for semantic distinctions
+- head_dim=16: basic syntactic patterns
+- 4 layers: token→phrase→clause→sentence hierarchy
+
+**Chinchilla optimal for our dataset:** 5.8M params (116M tokens / 20)
+**This model:** 10M params (1.7x over optimal, acceptable for generation quality)
+
+Current Ratio = D / N (for 20 epochs)
+              = 2,320,000,000 / 10,000,000
+              = 232
+
+Your ratio: 232:1
+Chinchilla optimal: 20:1
+Status: 11.6x overtrained (compensates for minimum model size)
+
+## Expected Outcome
+Coherent sentence generation with basic grammatical structure. Perplexity target: 80-150 (vs 365 in Experiment 2).
+
+## Results
+[To be filled]
+```
+
