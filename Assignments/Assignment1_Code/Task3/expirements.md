@@ -243,7 +243,8 @@ model = LanguageModel(
     dropout=0.1
 )
 ```
-**Parameters:** ~10,000,000
+**Parameters:** ~Parameters: 7,342,033
+
 
 ## Dataset
 - WikiText-103 (raw-v1)
