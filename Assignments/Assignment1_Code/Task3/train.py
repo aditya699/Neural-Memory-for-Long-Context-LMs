@@ -458,9 +458,9 @@ if __name__ == "__main__":
     model = LanguageModel(
         vocab_size=50257,
         max_seq_len=512,
-        d_model=128,
+        d_model=256,
         num_heads=8,
-        d_ff=512,
+        d_ff=1024,
         num_layers=4,
         dropout=0.1
     ).to(device)
@@ -470,7 +470,7 @@ if __name__ == "__main__":
     print(f"GPU Memory: {torch.cuda.memory_allocated()/1e9:.2f} GB")
     
     # Optimizer and loss
-    optimizer = optim.AdamW(model.parameters(), lr=6e-4, weight_decay=0.1)
+    optimizer = optim.AdamW(model.parameters(), lr=4e-4, weight_decay=0.1)
     criterion = nn.CrossEntropyLoss()
     
     # Train
