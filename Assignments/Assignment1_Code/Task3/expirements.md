@@ -469,9 +469,16 @@ Status: Undertrained, will compensate with multiple epochs
 Perplexity target: 45-55 (vs 66 in Experiment 3)
 Multi-sentence coherence with reduced topic drift
 
+## Result
 
-## NOTE
-A change is we r switching to flash attention to speed and better management of our calculations
+Training stopped at Epoch 9 (404 minutes elapsed)
 
-## Results
-[To be filled]
+**Metrics at stopping point:**
+- Train Loss: 4.0237
+- Val Loss: 3.8358
+- Val Perplexity: 46.33
+
+**Conclusion:**
+16M param model shows significant improvement over 7.3M (perplexity 66→46).
+However, training time increased to 42 min/epoch making full experimentation impractical.
+Model was still improving at stop point - early stopping not triggered.
