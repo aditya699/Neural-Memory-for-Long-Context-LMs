@@ -31,32 +31,27 @@ class MultiHeadAttention(nn.Module):
 
     def forward(self, x):
         batch_size, seq_len, _ = x.size()
-        
+
         Q = self.q_proj(x)
         K = self.k_proj(x)
         V = self.v_proj(x)
-        
+
         Q = Q.view(batch_size, seq_len, self.num_heads, self.head_dim)
         K = K.view(batch_size, seq_len, self.num_heads, self.head_dim)
         V = V.view(batch_size, seq_len, self.num_heads, self.head_dim)
 
-        Q = Q.transpose(1, 2)
+        Q = Q.transpose(1, 2)  # [batch, heads, seq, head_dim]
         K = K.transpose(1, 2)
         V = V.transpose(1, 2)
 
-        scores = torch.matmul(Q, K.transpose(-2, -1)) / math.sqrt(self.head_dim)
-        
-        # Causal masking
-        batch_size, num_heads, seq_len, _ = scores.shape
-        causal_mask = torch.tril(torch.ones(seq_len, seq_len, device=scores.device))
-        mask_to_block = (causal_mask == 0)
-        mask_to_block = mask_to_block.unsqueeze(0).unsqueeze(0)
-        scores = scores.masked_fill(mask_to_block, float('-inf'))
-        
-        attn_weights = torch.softmax(scores, dim=-1)
-        attn_weights = torch.nan_to_num(attn_weights, 0.0)
-        attn_weights = self.dropout(attn_weights)
-        output = torch.matmul(attn_weights, V)
+        # Flash Attention via PyTorch SDPA (replaces all the manual attention code!)
+        output = torch.nn.functional.scaled_dot_product_attention(
+            Q, K, V,
+            attn_mask=None,
+            dropout_p=self.dropout.p if self.training else 0.0,
+            is_causal=True,  # Handles causal masking automatically
+            scale=None  # Uses 1/sqrt(head_dim) automatically
+        )
 
         output = output.transpose(1, 2).contiguous()
         output = output.view(batch_size, seq_len, self.d_model)
@@ -435,7 +430,30 @@ if __name__ == "__main__":
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(f"Device: {device}")
     print(f"GPU Memory: {torch.cuda.memory_allocated()/1e9:.2f} GB")
-    
+
+    # Flash Attention Check
+    if torch.cuda.is_available():
+        print("\n" + "=" * 70)
+        print("FLASH ATTENTION CHECK")
+        print("=" * 70)
+        print(f"PyTorch version: {torch.__version__}")
+        print(f"CUDA available: {torch.cuda.is_available()}")
+        print(f"CUDA version: {torch.version.cuda}")
+
+        # Check SDPA backends
+        print("\nAvailable SDPA backends:")
+        print(f"  Flash Attention 2: {torch.backends.cuda.flash_sdp_enabled()}")
+        print(f"  Memory Efficient: {torch.backends.cuda.mem_efficient_sdp_enabled()}")
+        print(f"  Math (fallback): {torch.backends.cuda.math_sdp_enabled()}")
+
+        # Enable Flash Attention (and disable others for pure FA2)
+        torch.backends.cuda.enable_flash_sdp(True)
+        torch.backends.cuda.enable_mem_efficient_sdp(False)
+        torch.backends.cuda.enable_math_sdp(False)
+
+        print("\nFlash Attention 2 will be used for training!")
+        print("=" * 70)
+
     # Load data
     print("\nLoading dataset...")
     dataset = load_dataset('wikitext', 'wikitext-103-raw-v1')

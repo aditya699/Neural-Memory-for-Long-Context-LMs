@@ -469,5 +469,9 @@ Status: Undertrained, will compensate with multiple epochs
 Perplexity target: 45-55 (vs 66 in Experiment 3)
 Multi-sentence coherence with reduced topic drift
 
+
+## NOTE
+A change is we r switching to flash attention to speed and better management of our calculations
+
 ## Results
 [To be filled]
