@@ -543,4 +543,7 @@ Perplexity target: 35-42 (vs 46 in Experiment 4)
 Improved multi-sentence coherence with reduced topic drift
 
 ## NOTE :This time will let in learn for longer time (12hrs kinda run)
+## NOTE : Batch size is 16 this time lets see if that helps us prevent an memory error
+
+## Raw Thoughts : Should we just let this run work and take time;ilya said "they just wanna learn" may be a 20 hour run can this work
 ## Results
