@@ -461,7 +461,7 @@ if __name__ == "__main__":
         d_model=256,
         num_heads=8,
         d_ff=1024,
-        num_layers=4,
+        num_layers=8,
         dropout=0.1
     ).to(device)
     

@@ -482,3 +482,65 @@ Training stopped at Epoch 9 (404 minutes elapsed)
 16M param model shows significant improvement over 7.3M (perplexity 66→46).
 However, training time increased to 42 min/epoch making full experimentation impractical.
 Model was still improving at stop point - early stopping not triggered.
+
+# Experiment 5 - 11/14/2025
+
+## What we're doing
+Experiment 4 achieved perplexity 46 by scaling width (d_model, d_ff) but topic drift persisted. Testing depth hypothesis: doubling num_layers while keeping width constant to improve long-range coherence.
+
+## Model Configuration
+```python
+model = LanguageModel(
+    vocab_size=50257,
+    max_seq_len=512,
+    d_model=256,
+    num_heads=8,
+    d_ff=1024,
+    num_layers=8,
+    dropout=0.1
+)
+```
+**Parameters:** ~28,000,000
+
+## Dataset
+- WikiText-103 (raw-v1)
+- Train tokens: 116,000,000
+- Val tokens: 242,643
+
+## Training Setup
+- Loss: Cross Entropy
+- Optimizer: AdamW (lr=4e-4, weight_decay=0.1)
+- Gradient Clipping: max_norm=1.0
+- Batch size: 32
+- Epochs: 15
+- Early stopping patience: 5
+
+## Why This Configuration?
+Experiment 4 doubled width (d_model, d_ff) but maintained only 4 layers. While perplexity improved to 46, generation still showed topic drift after 15-20 words. Root cause: insufficient hierarchical depth.
+
+This experiment tests depth scaling:
+- d_model=256: proven sufficient for token representation (kept from Exp 4)
+- d_ff=1024: proven sufficient for pattern storage (kept from Exp 4)
+- num_layers=4→8: double depth for hierarchical reasoning
+  - Layers 1-2: token and bigram patterns
+  - Layers 3-4: phrase and clause structure
+  - Layers 5-6: sentence-level coherence
+  - Layers 7-8: multi-sentence topic maintenance
+
+**Chinchilla optimal for our dataset:** 5.8M params (116M tokens / 20)
+**This model:** 28M params (4.8x over optimal)
+
+Current Ratio = D / N (single epoch)
+              = 116,000,000 / 28,000,000
+              = 4.1
+
+Your ratio: 4.1:1
+Chinchilla optimal: 20:1
+Status: Significantly undertrained, will compensate with 15 epochs
+
+## Expected Outcome
+Perplexity target: 35-42 (vs 46 in Experiment 4)
+Improved multi-sentence coherence with reduced topic drift
+
+## NOTE :This time will let in learn for longer time (12hrs kinda run)
+## Results
