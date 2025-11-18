@@ -30,8 +30,8 @@ model = LanguageModel(
 - Epochs: 300
 
 ## Why This Configuration?
-Previous model (3.4M params) was 29x larger than Chinchilla optimal → severe overfitting.
-This model (819K params) is 7x over optimal → should overfit less.
+Previous model (3.4M params) was 29x larger than Chinchilla optimal, resulting in severe overfitting.
+This model (819K params) is 7x over optimal and should overfit less.
 
 **Chinchilla optimal for our dataset:** 117K params (tokens/20)
 
@@ -106,7 +106,7 @@ Experiment 1 suffered from severe data starvation:
 **Chinchilla analysis for Experiment 2:**
 - Optimal tokens needed: 869,153 × 20 = 17,383,060
 - Tokens per epoch: 103,000,000
-- With 1 epoch: 103M / 17.4M = 5.9x OVERTRAINED ✅
+- With 1 epoch: 103M / 17.4M = 5.9x OVERTRAINED (acceptable)
 
 Current Ratio = D / N (for 1 epoch)
               = 103,000,000 / 869,153
@@ -318,14 +318,14 @@ model = LanguageModel(
 
 ## Why This Configuration?
 Experiment 2 had sufficient data (118.5:1 ratio vs 20:1 optimal) but failed to generate coherent text. Root cause: severe capacity bottleneck.
-- d_model=16 → tokens compressed into insufficient dimensions
-- head_dim=8 → attention too simplistic
-- 2 layers → can't learn hierarchical structure
+- d_model=16 - tokens compressed into insufficient dimensions
+- head_dim=8 - attention too simplistic
+- 2 layers - unable to learn hierarchical structure
 
 This model (7.3M params) crosses minimum thresholds for basic language understanding:
 - d_model=128: minimum for semantic distinctions
 - head_dim=16: basic syntactic patterns
-- 4 layers: token→phrase→clause→sentence hierarchy
+- 4 layers: token to phrase to clause to sentence hierarchy
 
 **Chinchilla optimal for our dataset:** 5.8M params (116M tokens / 20)
 **This model:** 7.3M params (1.26x over optimal)
@@ -395,26 +395,26 @@ the cars for this junction.
 
 **Analysis:**
 
-✅ **Major improvements over Experiment 2:**
-- Perplexity: 365 → 66 (5.5x improvement)
+**Major improvements over Experiment 2:**
+- Perplexity: 365 to 66 (5.5x improvement)
 - Grammatically correct sentences
 - Proper subject-verb agreement
 - Rich, contextual vocabulary
 - Local semantic coherence (5-10 words)
 
-✅ **Achieved targets:**
-- Grammatical structure: YES
-- Readable sentences: YES
-- Perplexity 80-150: EXCEEDED (reached 66)
+**Achieved targets:**
+- Grammatical structure: Yes
+- Readable sentences: Yes
+- Perplexity 80-150: Exceeded (reached 66)
 
-❌ **Limitations observed:**
+**Limitations observed:**
 - Topic drift after 10-15 words
 - Semantic confusion (mixing unrelated contexts)
 - No long-range coherence
 - Factual inaccuracies
 
 **Conclusion:**
-Model capacity hypothesis **validated**. Scaling from 869K to 7.3M parameters enabled transition from token-level statistics to actual language understanding. However, model hit capacity ceiling around perplexity 65-70. 
+Model capacity hypothesis validated. Scaling from 869K to 7.3M parameters enabled transition from token-level statistics to actual language understanding. However, model hit capacity ceiling around perplexity 65-70. 
 
 # Experiment 4 - 11/13/2025
 
@@ -542,12 +542,11 @@ Status: Significantly undertrained, will compensate with 15 epochs
 Perplexity target: 35-42 (vs 46 in Experiment 4)
 Improved multi-sentence coherence with reduced topic drift
 
-## NOTE :This time will let in learn for longer time (12hrs kinda run)
-## NOTE : Batch size is 16 this time lets see if that helps us prevent an memory error
+## Notes
+- This time we will allow the model to train for an extended period (approximately 12 hours)
+- Batch size is 16 this time to prevent memory errors
+- Extended training duration: Testing whether a 20-hour run will yield better results
 
-## Raw Thoughts : Should we just let this run work and take time;ilya said "they just wanna learn" may be a 20 hour run can this work
-
-## Results
 ## Results
 
 Training completed successfully (20 epochs, 16.7 hours)
@@ -574,18 +573,18 @@ Model showed continuous improvement without plateau.
 Prompt: "The history of India is"
 Output: "vernacular Tamil, with traditional Sanskritic sources in which it is usually thought that a few are recorded and the ancient form is known..."
 
-✅ **Improvements over Experiment 4:**
-- Perplexity: 46.33 → 38.21 (17% improvement)
+**Improvements over Experiment 4:**
+- Perplexity: 46.33 to 38.21 (17% improvement)
 - Topic coherence: 15-20 word spans (vs 10-15 in Exp 4)
 - Better semantic understanding (Tamil/Sanskrit for India, Pythagoras for math)
 
-❌ **Limitations still observed:**
+**Limitations still observed:**
 - Repetition loops (character-level stuck patterns)
 - Topic drift after 20 words
 - Factual inaccuracies (mixed historical periods)
 
 **Conclusion:**
-Depth hypothesis validated. Doubling layers (4→8) while keeping width constant delivered better results than width scaling alone. The 8-layer architecture enables better hierarchical processing and longer-range coherence. However, fundamental issues (repetition, drift) persist, suggesting need for either larger scale (50M+ params) or architectural improvements (better attention mechanisms, training techniques).
+Depth hypothesis validated. Doubling layers (4 to 8) while keeping width constant delivered better results than width scaling alone. The 8-layer architecture enables better hierarchical processing and longer-range coherence. However, fundamental issues (repetition, drift) persist, suggesting need for either larger scale (50M+ params) or architectural improvements (better attention mechanisms, training techniques).
 
 # Experiments Summary
 
@@ -607,48 +606,48 @@ Depth hypothesis validated. Doubling layers (4→8) while keeping width constant
 
 ## Key Findings
 
-### Experiment 1 → 2: Data Matters
-**Change:** Same tiny model (869K), but 50× more data (2.3M → 116M tokens)
-**Result:** Perplexity 465 → 365 (21% improvement)
+### Experiment 1 to 2: Data Matters
+**Change:** Same tiny model (869K), but 50x more data (2.3M to 116M tokens)
+**Result:** Perplexity 465 to 365 (21% improvement)
 **Learning:** Even tiny models benefit from more data, but still gibberish without capacity
 
-### Experiment 2 → 3: Capacity is Critical
-**Change:** 8.4× more parameters (869K → 7.3M), added width and depth
-**Result:** Perplexity 365 → 66 (82% improvement!)
-**Learning:** Crossed minimum viable threshold - gibberish → readable sentences
+### Experiment 2 to 3: Capacity is Critical
+**Change:** 8.4x more parameters (869K to 7.3M), added width and depth
+**Result:** Perplexity 365 to 66 (82% improvement)
+**Learning:** Crossed minimum viable threshold - gibberish to readable sentences
 
-### Experiment 3 → 4: Width Helps
-**Change:** 2.2× parameters (7.3M → 16M), doubled d_model and d_ff
-**Result:** Perplexity 66 → 46 (30% improvement)
+### Experiment 3 to 4: Width Helps
+**Change:** 2.2x parameters (7.3M to 16M), doubled d_model and d_ff
+**Result:** Perplexity 66 to 46 (30% improvement)
 **Learning:** Wider embeddings improve token understanding, but topic drift persists
 
-### Experiment 4 → 5: Depth Helps More
-**Change:** 1.2× parameters (16M → 19M), doubled num_layers (4 → 8)
-**Result:** Perplexity 46 → 38 (17% improvement)
-**Learning:** **Depth > Width for coherence** - Better long-range dependencies
+### Experiment 4 to 5: Depth Helps More
+**Change:** 1.2x parameters (16M to 19M), doubled num_layers (4 to 8)
+**Result:** Perplexity 46 to 38 (17% improvement)
+**Learning:** Depth provides better coherence than width - Better long-range dependencies
 
 ## Progression Summary
 ```
-Exp 1: 465 perplexity → Nonsense (data starved)
-  ↓ +50× data
-Exp 2: 365 perplexity → Still nonsense (capacity bottleneck)
-  ↓ +8× capacity
-Exp 3:  66 perplexity → Readable but incoherent (shallow)
-  ↓ +2× width
-Exp 4:  46 perplexity → Better vocab, still drifts (needs depth)
-  ↓ +2× depth
-Exp 5:  38 perplexity → Best coherence achieved ✅
+Exp 1: 465 perplexity - Nonsense (data starved)
+  | +50x data
+Exp 2: 365 perplexity - Still nonsense (capacity bottleneck)
+  | +8x capacity
+Exp 3:  66 perplexity - Readable but incoherent (shallow)
+  | +2x width
+Exp 4:  46 perplexity - Better vocab, still drifts (needs depth)
+  | +2x depth
+Exp 5:  38 perplexity - Best coherence achieved
 ```
 
 ## Validation of Hypotheses
 
 | Hypothesis | Validated? | Evidence |
 |------------|------------|----------|
-| Data scaling matters | ✅ Yes | Exp 1→2: Same model, +50× data = 21% improvement |
-| Model capacity matters | ✅ Yes | Exp 2→3: +8× params = 82% improvement, gibberish→readable |
-| Width improves understanding | ✅ Yes | Exp 3→4: 2× d_model/d_ff = 30% improvement |
-| Depth improves coherence | ✅ Yes | Exp 4→5: 2× layers = 17% improvement + better topic maintenance |
-| Chinchilla optimal ratio | ⚠️ Partial | Undertrained models still improve with more epochs |
+| Data scaling matters | Yes | Exp 1-2: Same model, +50x data = 21% improvement |
+| Model capacity matters | Yes | Exp 2-3: +8x params = 82% improvement, gibberish to readable |
+| Width improves understanding | Yes | Exp 3-4: 2x d_model/d_ff = 30% improvement |
+| Depth improves coherence | Yes | Exp 4-5: 2x layers = 17% improvement + better topic maintenance |
+| Chinchilla optimal ratio | Partial | Undertrained models still improve with more epochs |
 
 ## Generation Quality Evolution
 
@@ -700,4 +699,105 @@ These experiments validated fundamental scaling laws in language modeling:
 
 **For production use:** Would need 100M+ params, better data, advanced techniques
 
-## NOTE: Will scale it but will scale it with better attention for better use of compute
+## Next Steps
+Future scaling experiments will incorporate improved attention mechanisms for better computational efficiency.
+
+# Experiment 6 - 11/18/2025
+
+## What we're doing
+Experiment 5 plateaued at perplexity 38.21 despite 8 layers and 19M parameters. Scaling to 64M parameters with Flash Attention to test if 3.4x parameter increase combined with memory-efficient attention enables breakthrough in generation quality and long-range coherence.
+
+## Model Configuration
+```python
+model = LanguageModel(
+    vocab_size=50257,
+    max_seq_len=512,
+    d_model=512,
+    num_heads=8,
+    d_ff=2048,
+    num_layers=12,
+    dropout=0.1
+)
+```
+**Parameters:** 63,873,617
+
+## Dataset
+- WikiText-103 (raw-v1)
+- Train tokens: 116,000,000
+- Val tokens: 242,643
+
+## Training Setup
+- Loss: Cross Entropy
+- Optimizer: AdamW (lr=4e-4, weight_decay=0.1)
+- Gradient Clipping: max_norm=1.0
+- Batch size: 16
+- Epochs: 20
+- Early stopping patience: 5
+- Flash Attention: Enabled
+
+## Why This Configuration?
+Experiment 5 showed depth scaling (4 to 8 layers) improved coherence but still exhibited topic drift and repetition after 15-20 words. This experiment combines three scaling dimensions simultaneously:
+
+**Width scaling:**
+- d_model: 256 to 512 (2x wider embeddings)
+- d_ff: 1024 to 2048 (2x feedforward capacity)
+- Rationale: Richer token representations and increased pattern storage capacity
+
+**Depth scaling:**
+- num_layers: 8 to 12 (1.5x deeper)
+- Rationale: Extended hierarchical processing for long-range coherence
+  - Layers 1-3: token and n-gram patterns
+  - Layers 4-6: phrase and clause structure
+  - Layers 7-9: sentence-level coherence
+  - Layers 10-12: multi-sentence topic maintenance and discourse structure
+
+**Efficiency optimization:**
+- Flash Attention implementation
+- Memory complexity: O(n) instead of O(n²)
+- Enables 3.4x larger model on same hardware
+- Proven 6.63x speed improvement and 76.7% memory reduction
+
+**Chinchilla optimal for our dataset:** 5.8M params (116M tokens / 20)
+**This model:** 64M params (11x over optimal)
+
+Current Ratio = D / N (single epoch)
+              = 116,000,000 / 63,873,617
+              = 1.8
+
+Your ratio: 1.8:1
+Chinchilla optimal: 20:1
+Status: Significantly undertrained, compensating with 20 epochs
+
+## Expected Outcome
+Perplexity target: 25-32 (vs 38.21 in Experiment 5)
+Generation improvements:
+- Multi-sentence coherence spanning 30+ words
+- Reduced repetition loops
+- Better topic maintenance
+- Improved factual consistency within local context
+
+## Flash Attention Implementation
+**Technical details:**
+- GPU: RTX 4000 Ada (Compute Capability 8.9)
+- PyTorch: 2.8.0 with native Flash Attention support
+- Backend: FLASH_ATTENTION confirmed available
+- Memory usage: 8.55 GB peak (vs 18-20 GB with standard attention)
+- Batch size: 16 (reduced from 32 for safety margin)
+
+**Why Flash Attention matters:**
+- Removes memory bottleneck from attention computation
+- Enables training larger models without upgrading hardware
+- Maintains identical mathematical operations (no approximation)
+- Industry standard for modern language models
+
+## Pre-training Validation
+**Dry run results (1% data, 3 epochs):**
+- Parameter count: 63,873,617 verified
+- Memory stability: 8.55 GB peak, no OOM errors
+- Training stability: Loss decreased 293.71 to 62.97
+- Checkpointing: Functional
+- Generation: Operational
+
+## Results
+
+[Training in progress]

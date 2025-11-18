@@ -5,7 +5,6 @@ from torch.utils.data import Dataset, DataLoader
 from datasets import load_dataset
 from transformers import GPT2Tokenizer
 from tqdm import tqdm
-import math
 import os
 import matplotlib.pyplot as plt
 
@@ -40,23 +39,20 @@ class MultiHeadAttention(nn.Module):
         K = K.view(batch_size, seq_len, self.num_heads, self.head_dim)
         V = V.view(batch_size, seq_len, self.num_heads, self.head_dim)
 
-        Q = Q.transpose(1, 2)
+        Q = Q.transpose(1, 2)  # (batch, heads, seq, head_dim)
         K = K.transpose(1, 2)
         V = V.transpose(1, 2)
 
-        scores = torch.matmul(Q, K.transpose(-2, -1)) / math.sqrt(self.head_dim)
-
-        # Causal masking
-        batch_size, num_heads, seq_len, _ = scores.shape
-        causal_mask = torch.tril(torch.ones(seq_len, seq_len, device=scores.device))
-        mask_to_block = (causal_mask == 0)
-        mask_to_block = mask_to_block.unsqueeze(0).unsqueeze(0)
-        scores = scores.masked_fill(mask_to_block, float('-inf'))
-
-        attn_weights = torch.softmax(scores, dim=-1)
-        attn_weights = torch.nan_to_num(attn_weights, 0.0)
-        attn_weights = self.dropout(attn_weights)
-        output = torch.matmul(attn_weights, V)
+        # ============================================
+        # FLASH ATTENTION (Memory-efficient implementation)
+        # Replaces manual attention computation with PyTorch's optimized version
+        # ============================================
+        output = torch.nn.functional.scaled_dot_product_attention(
+            Q, K, V,
+            dropout_p=self.dropout.p if self.training else 0.0,
+            is_causal=True  # Automatic causal masking - no need for manual mask!
+        )
+        # ============================================
 
         output = output.transpose(1, 2).contiguous()
         output = output.view(batch_size, seq_len, self.d_model)
@@ -458,10 +454,10 @@ if __name__ == "__main__":
     model = LanguageModel(
         vocab_size=50257,
         max_seq_len=512,
-        d_model=256,
-        num_heads=8,
-        d_ff=1024,
-        num_layers=8,
+        d_model=320,
+        num_heads=10,
+        d_ff=1280,
+        num_layers=15,
         dropout=0.1
     ).to(device)
     
