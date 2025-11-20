@@ -8,9 +8,65 @@ from tqdm import tqdm
 import os
 import matplotlib.pyplot as plt
 
+# Force clear everything
+torch.cuda.empty_cache()
+import gc
+gc.collect()
+
 # ============================================
 # MODEL COMPONENTS
 # ============================================
+
+class RotaryPositionalEmbedding(nn.Module):
+    """
+    RoPE: Rotary Positional Embedding
+    Encodes position information via rotation in complex space
+    """
+    def __init__(self, dim, base=10000):
+        super().__init__()
+
+        # Precompute inverse frequencies for rotation angles
+        # θᵢ = base^(-2i/dim) for i ∈ [0, dim/2)
+        inv_freq = 1.0 / (base ** (torch.arange(0, dim, 2).float() / dim))
+        self.register_buffer('inv_freq', inv_freq)
+
+    def forward(self, x, seq_len):
+        """
+        Apply rotary position embeddings to input tensor
+
+        Args:
+            x: Input tensor of shape [batch, num_heads, seq_len, head_dim]
+            seq_len: Sequence length
+
+        Returns:
+            Rotated tensor of same shape as input
+        """
+        # Generate position indices [0, 1, 2, ..., seq_len-1]
+        positions = torch.arange(seq_len, device=x.device).float()
+
+        # Compute angles: outer product of positions and inverse frequencies
+        # Shape: [seq_len, head_dim/2]
+        freqs = torch.outer(positions, self.inv_freq)
+
+        # Create complex representation using Euler's formula: e^(iθ) = cos(θ) + i*sin(θ)
+        # Shape: [seq_len, head_dim/2]
+        freqs_complex = torch.polar(torch.ones_like(freqs), freqs)
+
+        # Reshape input to complex: pair adjacent dimensions as real/imaginary parts
+        # [batch, heads, seq, head_dim] -> [batch, heads, seq, head_dim/2, 2] -> [batch, heads, seq, head_dim/2]
+        x_complex = torch.view_as_complex(x.float().reshape(*x.shape[:-1], -1, 2))
+
+        # Apply rotation via complex multiplication
+        # Broadcast freqs_complex to match batch and head dimensions
+        freqs_complex = freqs_complex.unsqueeze(0).unsqueeze(0)  # [1, 1, seq, head_dim/2]
+        x_rotated = x_complex * freqs_complex
+
+        # Convert back to real representation
+        # [batch, heads, seq, head_dim/2] -> [batch, heads, seq, head_dim/2, 2] -> [batch, heads, seq, head_dim]
+        x_out = torch.view_as_real(x_rotated).flatten(-2)
+
+        return x_out.type_as(x)
+
 
 class MultiHeadAttention(nn.Module):
     def __init__(self, d_model, num_heads, dropout=0.1):
@@ -20,12 +76,15 @@ class MultiHeadAttention(nn.Module):
         self.d_model = d_model
         self.num_heads = num_heads
         self.head_dim = d_model // num_heads
-        
+
+        # Initialize RoPE for positional encoding
+        self.rope = RotaryPositionalEmbedding(self.head_dim)
+
         self.q_proj = nn.Linear(d_model, d_model)
         self.k_proj = nn.Linear(d_model, d_model)
         self.v_proj = nn.Linear(d_model, d_model)
         self.out_proj = nn.Linear(d_model, d_model)
-        
+
         self.dropout = nn.Dropout(dropout)
 
     def forward(self, x):
@@ -42,6 +101,15 @@ class MultiHeadAttention(nn.Module):
         Q = Q.transpose(1, 2)  # (batch, heads, seq, head_dim)
         K = K.transpose(1, 2)
         V = V.transpose(1, 2)
+
+        # ============================================
+        # APPLY ROPE (Rotary Positional Embedding)
+        # Apply rotation to Q and K for position encoding
+        # V is NOT rotated - only queries and keys need position info
+        # ============================================
+        Q = self.rope(Q, seq_len)
+        K = self.rope(K, seq_len)
+        # ============================================
 
         # ============================================
         # FLASH ATTENTION (Memory-efficient implementation)
@@ -106,27 +174,25 @@ class TransformerBlock(nn.Module):
 
 
 class Embeddings(nn.Module):
-    def __init__(self, vocab_size, max_seq_len, d_model):
+    def __init__(self, vocab_size, d_model):
         super().__init__()
 
+        # Only token embeddings - no learned positional embeddings
+        # Position information is now handled by RoPE in the attention layer
         self.token_embed = nn.Embedding(vocab_size, d_model)
-        self.pos_embed = nn.Embedding(max_seq_len, d_model)
 
     def forward(self, token_ids):
-        batch_size, seq_len = token_ids.shape
-
-        tokens = self.token_embed(token_ids)
-        positions = torch.arange(seq_len, device=token_ids.device)
-        pos = self.pos_embed(positions)
-
-        return tokens + pos
+        # Return only token embeddings
+        # RoPE will add positional information during attention computation
+        return self.token_embed(token_ids)
 
 
 class LanguageModel(nn.Module):
-    def __init__(self, vocab_size, max_seq_len, d_model, num_heads, d_ff, num_layers, dropout=0.1):
+    def __init__(self, vocab_size, d_model, num_heads, d_ff, num_layers, dropout=0.1):
         super().__init__()
 
-        self.embeddings = Embeddings(vocab_size, max_seq_len, d_model)
+        # No max_seq_len needed - RoPE handles arbitrary sequence lengths
+        self.embeddings = Embeddings(vocab_size, d_model)
 
         self.blocks = nn.ModuleList([
             TransformerBlock(d_model, num_heads, d_ff, dropout)
@@ -443,8 +509,8 @@ if __name__ == "__main__":
     train_dataset = WikiTextDataset(dataset['train'], tokenizer, max_length=512)
     val_dataset = WikiTextDataset(dataset['validation'], tokenizer, max_length=512)
     
-    train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True, num_workers=0)
-    val_loader = DataLoader(val_dataset, batch_size=32, shuffle=False, num_workers=0)
+    train_loader = DataLoader(train_dataset, batch_size=16, shuffle=True, num_workers=0)
+    val_loader = DataLoader(val_dataset, batch_size=16, shuffle=False, num_workers=0)
     
     print(f"Train batches: {len(train_loader)}")
     print(f"Val batches: {len(val_loader)}")
@@ -453,13 +519,13 @@ if __name__ == "__main__":
     print("\nCreating model...")
     model = LanguageModel(
         vocab_size=50257,
-        max_seq_len=512,
-        d_model=320,
-        num_heads=10,
-        d_ff=1280,
-        num_layers=15,
+        # max_seq_len removed - RoPE handles arbitrary sequence lengths!
+        d_model=512,      # ← Change from 320
+        num_heads=8,      # ← Change from 10
+        d_ff=2048,        # ← Change from 1280
+        num_layers=12,    # ← Change from 15
         dropout=0.1
-    ).to(device)
+    ).to('cuda')
     
     num_params = sum(p.numel() for p in model.parameters())
     print(f"Parameters: {num_params:,}")
