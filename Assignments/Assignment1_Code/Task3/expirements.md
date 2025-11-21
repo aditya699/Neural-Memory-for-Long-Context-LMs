@@ -853,26 +853,26 @@ of the objects that are heard are a variety of colors, and objects of
 
 **Analysis:**
 
-✅ **Breakthrough improvements over Experiment 5:**
+**Breakthrough improvements over Experiment 5:**
 - Perplexity: 38.21 → 28.05 (27% improvement)
 - Coherence span: 15-20 words → 30-50 words (2-3× improvement)
 - Repetition loops: Completely eliminated
 - Topic drift: Significantly reduced - maintains subject across full generation
 - Factual consistency: Improved temporal accuracy (actual historical dates)
 
-✅ **Achieved all targets:**
+**Achieved all targets:**
 - Perplexity <32: YES (reached 28.05)
 - Multi-sentence coherence: YES (30+ word spans)
 - Repetition elimination: YES (no loops in any test)
 - Topic maintenance: YES (stays on subject)
 
-✅ **Flash Attention validation:**
+**Flash Attention validation:**
 - Memory reduction: 60% vs theoretical standard attention
 - Training feasibility: 63M params on consumer GPU (RTX 4000 Ada)
 - Speed: 75 min/epoch (only 1.5× slower than 19M model despite 3.3× more params)
 - Quality: 27% perplexity improvement validates approach
 
-❌ **Remaining limitations:**
+**Remaining limitations:**
 - Long-range factual accuracy (beyond 50 words)
 - Some semantic drift in extended generation
 - Occasional awkward phrasing
@@ -892,3 +892,161 @@ Flash Attention hypothesis **decisively validated**. The memory-efficient attent
 Generation quality crossed a threshold: from locally coherent sentences to multi-sentence discourse with maintained topics and eliminated repetition artifacts. This validates the production viability of modern attention mechanisms for resource-constrained training scenarios.
 
 **Key insight:** Modern architectural improvements (Flash Attention) enable order-of-magnitude quality gains within the same hardware budget, proving that algorithmic efficiency can substitute for hardware scaling in practical applications.
+
+# Experiment 7 - 21/11/2025
+
+## What we're doing
+Isolating RoPE's contribution to model performance. Using identical 63M parameter architecture as Experiment 6 but replacing absolute position embeddings with Rotary Position Embeddings (RoPE) to measure impact on perplexity and enable sequence length extrapolation beyond training context.
+
+## Model Configuration
+```python
+model = LanguageModel(
+    vocab_size=50257,
+    # max_seq_len removed - RoPE handles arbitrary lengths
+    d_model=512,
+    num_heads=8,
+    d_ff=2048,
+    num_layers=12,
+    dropout=0.1,
+    use_flash_attention=True,
+    use_rope=True  # NEW: Rotary Position Embeddings
+)
+```
+**Parameters:** 63,611,473 (262,144 fewer than Exp 6 due to removed position embeddings)
+
+## Dataset
+- WikiText-103 (raw-v1)
+- Train tokens: 116,000,000
+- Val tokens: 242,643
+
+## Training Setup
+- Loss: Cross Entropy
+- Optimizer: AdamW (lr=4e-4, weight_decay=0.1)
+- Gradient Clipping: max_norm=1.0
+- Batch size: 16
+- Epochs: 20
+- Early stopping: patience=5
+- GPU: RTX 4000 Ada (20GB VRAM)
+- Flash Attention: Enabled
+- RoPE Configuration: base=10000 (LLaMA standard)
+
+## Why This Configuration?
+Experiment 6 achieved 28.05 perplexity using Flash Attention with absolute position embeddings. This experiment isolates RoPE as the single changed variable to measure its specific contribution. RoPE offers theoretical advantages:
+
+**Position encoding comparison:**
+
+Absolute Position Embeddings (Experiment 6):
+- Learned lookup table: 512 positions × 512 dimensions = 262,144 parameters
+- Fixed maximum sequence length (512 tokens)
+- Encodes absolute positions only
+- Cannot extrapolate beyond training length
+
+Rotary Position Embeddings (Experiment 7):
+- Zero learned parameters (mathematical formula)
+- Arbitrary sequence length capability
+- Encodes relative positions via rotation geometry
+- Natural extrapolation to longer sequences
+
+**Technical implementation:**
+- RoPE applied to Q and K projections only (V unchanged)
+- Rotation frequency: θᵢ = 10000^(-2i/dim) for i in [0, head_dim/2)
+- 64-dimensional head space split into 32 rotation pairs
+- Complex number representation via torch.polar for efficient computation
+
+**Chinchilla optimal for our dataset:** 5.8M params (116M tokens / 20)
+**This model:** 63.6M params (11× over optimal)
+
+Current Ratio = D / N (per epoch)
+              = 116,000,000 / 63,611,473
+              = 1.82
+
+Your ratio: 1.82:1
+Chinchilla optimal: 20:1
+Status: Significantly undertrained by Chinchilla standards, compensating with extended training
+
+## Expected Outcome
+Perplexity target: 26-27 (modest 1-2 point improvement over Experiment 6's 28.05)
+
+Primary hypothesis: RoPE's benefit manifests more in architectural elegance and extrapolation capability than raw perplexity improvement at training length.
+
+Secondary hypothesis: If perplexity improvement exceeds 2 points, suggests relative position encoding provides meaningful signal beyond absolute positions.
+
+Extrapolation validation:
+- Train on 512 token context
+- Test generation at 768 tokens
+- Test generation at 1024 tokens
+- Absolute position baseline: should fail/degrade beyond 512
+- RoPE: should maintain coherence
+
+## Architectural Changes from Experiment 6
+
+**Removed:**
+```python
+class Embeddings(nn.Module):
+    def __init__(self, vocab_size, max_seq_len, d_model):
+        self.pos_embed = nn.Embedding(max_seq_len, d_model)  # DELETED
+```
+
+**Added:**
+```python
+class RotaryPositionalEmbedding(nn.Module):
+    def __init__(self, dim, base=10000):
+        # Precompute rotation frequencies
+        inv_freq = 1.0 / (base ** (torch.arange(0, dim, 2).float() / dim))
+        
+class MultiHeadAttention(nn.Module):
+    def __init__(self, d_model, num_heads, dropout=0.1):
+        self.rope = RotaryPositionalEmbedding(self.head_dim)  # ADDED
+        
+    def forward(self, x):
+        # Apply RoPE to Q and K after projection, before attention
+        Q = self.rope(Q, seq_len)
+        K = self.rope(K, seq_len)
+```
+
+Parameter reduction: 262,144 fewer parameters (position embedding table removed)
+
+## Results
+
+[Training results to be filled after completion]
+
+**Expected perplexity progression:**
+| Epoch | Val Perplexity | Notes |
+|-------|----------------|-------|
+| 1 | ~180 | Similar initialization to Exp 6 |
+| 4 | ~45 | Rapid learning phase |
+| 8 | ~32 | Convergence begins |
+| 12 | ~28 | Target range |
+| 16 | ~26-27 | Expected final |
+
+**Extrapolation test results:**
+[To be filled after training]
+
+Test at 512 tokens (training length):
+Test at 768 tokens (1.5× training):
+Test at 1024 tokens (2× training):
+
+**Generation examples:**
+[To be filled after training]
+
+## Analysis
+
+[Post-training analysis]
+
+Comparison to Experiment 6:
+- Perplexity delta:
+- Parameter efficiency:
+- Training time:
+- Memory usage:
+- Extrapolation capability:
+
+Validation of hypotheses:
+- RoPE perplexity impact:
+- Extrapolation beyond 512 tokens:
+- Architectural trade-offs:
+
+## Conclusion
+
+[To be completed after training]
+
+This experiment validates whether RoPE's theoretical advantages (relative position encoding, zero parameters, length extrapolation) translate to measurable improvements in a production-scale architecture with Flash Attention. Results will inform Experiment 8 design (100M+ parameter scaling with optimal position encoding).
