@@ -13,6 +13,9 @@ Exploring scaling laws, architectural improvements, and position encoding techni
 | 5 | 11/14 | Scaling depth (num_layers) | WikiText-103 | 19M | 256 | 8 | Vanilla Transformer | 20 | 17h | 38.21 | Depth > width for coherence |
 | 6 | 11/19 | Flash Attention (3.3x scale) | WikiText-103 | 63.8M | 512 | 12 | Flash Attention | 16 | 20h | 28.05 | Memory efficiency enables large models |
 | 7 | 11/21 | RoPE position encoding | WikiText-103 | 63.6M | 512 | 12 | Flash Attention + RoPE | 8 | - | 28.06 | Better coherence, 2x faster convergence |
+| 8* | 12/08 | Continual pre-training (CPT) | Clinical notes (30K, 13M tokens) | 494M | - | - | Qwen2.5-0.5B (pre-trained) | 1 | 29min | 2.44 (loss) | Medical domain adaptation: MCQ→clinical docs |
+
+*Experiment 8 uses continual pre-training on Qwen2.5-0.5B (not trained from scratch)
 
 ## Key Insights
 
