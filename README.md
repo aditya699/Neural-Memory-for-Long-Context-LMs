@@ -14,6 +14,7 @@ Exploring scaling laws, architectural improvements, and position encoding techni
 | 6 | 11/19 | Flash Attention (3.3x scale) | WikiText-103 | 63.8M | 512 | 12 | Flash Attention | 16 | 20h | 28.05 | Memory efficiency enables large models |
 | 7 | 11/21 | RoPE position encoding | WikiText-103 | 63.6M | 512 | 12 | Flash Attention + RoPE | 8 | - | 28.06 | Better coherence, 2x faster convergence |
 | 8* | 12/08 | Continual pre-training (CPT) | Clinical notes (30K, 13M tokens) | 494M | - | - | Qwen2.5-0.5B (pre-trained) | 1 | 29min | 2.44 (loss) | Medical domain adaptation: MCQ→clinical docs |
+| 9 | 12/17 | Knowledge distillation | WikiText-2 (5K examples filtered) | 44.6M (student) | 256 | 6 | Qwen-based | 10 | 10min | 347.06 (KL loss) | 11x compression (494M→44M), loss decreased 33% but quality poor |
 
 *Experiment 8 uses continual pre-training on Qwen2.5-0.5B (not trained from scratch)
 
@@ -56,6 +57,13 @@ For WikiText-103 (116M tokens), Chinchilla optimal = 5.8M parameters (20:1 ratio
 - No max sequence length constraint
 - **Key insight**: Relative positions generalize better than absolute
 
+**Knowledge Distillation (Exp 9)**
+- Teacher: Qwen2.5-0.5B (494M params)
+- Student: Custom model (44.6M params, 11x compression)
+- KL divergence loss decreased 33% (515 → 347)
+- Output quality poor despite loss improvement
+- **Key insight**: 11x compression too aggressive, need pretrained student + combined loss
+
 ### Production Comparison
 ```
 GPT-2 Small (117M params):    ~29 perplexity on WikiText-103
@@ -73,6 +81,7 @@ GPT-2 Medium (345M params):   ~23 perplexity on WikiText-103
 5. **RoPE superior to absolute positions** - Better generalization + faster training
 6. **Diminishing returns** - Each doubling costs exponentially more
 7. **WikiText-103 ceiling** - Dataset supports ~30M-64M params effectively
+8. **Distillation requires care** - Compression ratio, pretrained students, and combined loss critical
 
 ## Best Practices Established
 
@@ -83,6 +92,7 @@ GPT-2 Medium (345M params):   ~23 perplexity on WikiText-103
 - Early stopping patience = 5 epochs (convergence indicator)
 - Batch size 16-32 optimal for RTX 4000 Ada
 - Monitor coherence span, not just perplexity
+- For distillation: keep compression < 10x, use pretrained student, add task loss
 
 ## Next Steps
 
