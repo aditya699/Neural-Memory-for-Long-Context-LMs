@@ -14,7 +14,8 @@ Exploring scaling laws, architectural improvements, and position encoding techni
 | 6 | 11/19 | Flash Attention (3.3x scale) | WikiText-103 | 63.8M | 512 | 12 | Flash Attention | 16 | 20h | 28.05 | Memory efficiency enables large models |
 | 7 | 11/21 | RoPE position encoding | WikiText-103 | 63.6M | 512 | 12 | Flash Attention + RoPE | 8 | - | 28.06 | Better coherence, 2x faster convergence |
 | 8* | 12/08 | Continual pre-training (CPT) | Clinical notes (30K, 13M tokens) | 494M | - | - | Qwen2.5-0.5B (pre-trained) | 1 | 29min | 2.44 (loss) | Medical domain adaptation: MCQ→clinical docs |
-| 9 | 12/17 | Knowledge distillation | WikiText-2 (5K examples filtered) | 44.6M (student) | 256 | 6 | Qwen-based | 10 | 10min | 347.06 (KL loss) | 11x compression (494M→44M), loss decreased 33% but quality poor |
+| 9 | 12/17 | Knowledge distillation (KL only) | WikiText-2 (5K examples filtered) | 44.6M (student) | 256 | 6 | Qwen-based | 10 | 10min | 347.06 (KL loss) | 11x compression (494M→44M), loss decreased 33% but output garbage (,,,,) |
+| 10 | 12/19 | Knowledge distillation (KL + CE) | WikiText-2 (10K examples filtered) | 125M (student) | 512 | 12 | Qwen-based | 20 | 55min | 4.14 (hard loss) | 4x compression, grammatical output but wrong facts |
 
 *Experiment 8 uses continual pre-training on Qwen2.5-0.5B (not trained from scratch)
 
@@ -57,12 +58,39 @@ For WikiText-103 (116M tokens), Chinchilla optimal = 5.8M parameters (20:1 ratio
 - No max sequence length constraint
 - **Key insight**: Relative positions generalize better than absolute
 
-**Knowledge Distillation (Exp 9)**
+### Knowledge Distillation Experiments (Exp 9 & 10)
+
+**Exp 9: KL Divergence Only (Failed)**
 - Teacher: Qwen2.5-0.5B (494M params)
-- Student: Custom model (44.6M params, 11x compression)
-- KL divergence loss decreased 33% (515 → 347)
-- Output quality poor despite loss improvement
-- **Key insight**: 11x compression too aggressive, need pretrained student + combined loss
+- Student: 44.6M params (11x compression, random init)
+- Loss: KL divergence only (soft targets)
+- Result: Loss decreased 33% but output was garbage (`,,,,,,,,`)
+- **Why it failed**: Without cross-entropy (hard labels), student took shortcut — predicted "safe" punctuation tokens that minimized KL loss without learning actual language
+
+**Exp 10: KL + Cross-Entropy (Improved)**
+- Teacher: Qwen2.5-0.5B (494M params)
+- Student: 125M params (4x compression, random init)
+- Loss: Combined (α=0.5 × KL + 0.5 × Cross-Entropy)
+- Training: 10K examples, 20 epochs, 55 minutes
+- Loss trajectory:
+  - Soft (KL): 3.56 → 2.96
+  - Hard (CE): 6.68 → 4.14
+- Result: Grammatical English but wrong facts
+
+| Prompt | Teacher Output | Student Output |
+|--------|----------------|----------------|
+| "The capital of France is" | Paris (31.57%) | the (21.39%) |
+| "The cat sat on the" | mat (84.33%) | city (0.58%) |
+
+**Why Exp 10 improved over Exp 9:**
+- Cross-entropy loss gave strong signal: "predict actual correct token, not just match distribution shape"
+- Without CE, student could minimize KL by predicting punctuation everywhere
+- With CE, student forced to learn real language patterns
+
+**Why Exp 10 still didn't match teacher:**
+- Random initialization: student had to learn language from scratch
+- Industry uses pretrained students that already know language
+- 10K examples and 55 min training insufficient for 125M param model learning from zero
 
 ### Production Comparison
 ```
@@ -81,30 +109,6 @@ GPT-2 Medium (345M params):   ~23 perplexity on WikiText-103
 5. **RoPE superior to absolute positions** - Better generalization + faster training
 6. **Diminishing returns** - Each doubling costs exponentially more
 7. **WikiText-103 ceiling** - Dataset supports ~30M-64M params effectively
-8. **Distillation requires care** - Compression ratio, pretrained students, and combined loss critical
-
-## Best Practices Established
-
-**For future experiments:**
-- Use Flash Attention + RoPE as baseline (Exp 7 architecture)
-- Target Chinchilla ratio 5-20:1 for compute efficiency
-- Depth matters more than width once d_model ≥ 256
-- Early stopping patience = 5 epochs (convergence indicator)
-- Batch size 16-32 optimal for RTX 4000 Ada
-- Monitor coherence span, not just perplexity
-- For distillation: keep compression < 10x, use pretrained student, add task loss
-
-## Next Steps
-
-To reach perplexity ~20-25 (GPT-2 Medium quality):
-- **Model size**: 100-150M parameters
-- **Architecture**: 16-20 layers, d_model=768
-- **Dataset**: Larger corpus (500M-1B tokens)
-- **Training**: 30-50 hours on L40/A100
-- **Cost**: $50-100 GPU rental
-
-**Advanced techniques to explore:**
-- Grouped Query Attention (GQA)
-- Sliding Window Attention
-- Mixture of Experts (MoE)
-- Better training data quality
+8. **Distillation requires combined loss** - KL only → mode collapse; KL + CE → actual learning
+9. **Compression ratio matters** - 11x too aggressive, 4x works better
+10. **Pretrained students are critical** - Random init requires 10-100x more training than pretrained init
